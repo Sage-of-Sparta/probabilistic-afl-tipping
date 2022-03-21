@@ -15,6 +15,15 @@ set_lists_to_chars <- function(x) {
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # get historical afl match results
+
+results_2017_temp <- fitzRoy::fetch_results_afl(season = 2017, round_number = NULL, comp = "AFLM")
+results_2017 <- data.frame(lapply(results_2017_temp, set_lists_to_chars), stringsAsFactors = F)
+write.csv(results_2017,"data//afl_results_2017.csv", row.names = FALSE)
+
+results_2018_temp <- fitzRoy::fetch_results_afl(season = 2018, round_number = NULL, comp = "AFLM")
+results_2018 <- data.frame(lapply(results_2018_temp, set_lists_to_chars), stringsAsFactors = F)
+write.csv(results_2018,"data//afl_results_2018.csv", row.names = FALSE)
+
 results_2019_temp <- fitzRoy::fetch_results_afl(season = 2019, round_number = NULL, comp = "AFLM")
 results_2019 <- data.frame(lapply(results_2019_temp, set_lists_to_chars), stringsAsFactors = F)
 write.csv(results_2019,"data//afl_results_2019.csv", row.names = FALSE)
