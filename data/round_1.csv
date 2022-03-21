@@ -1,0 +1,14 @@
+,match.homeTeam.name,match.awayTeam.name,predicted_result,prob_loss,prob_draw,prob_win,Actual,Enter Prob,,,,,,
+4,GWS Giants,Sydney Swans,1,0.95124996,0.022644179,0.026105877,1,0.95,0.925999419,,,,,
+5,Brisbane Lions,Port Adelaide,3,0.028724726,0.020991392,0.9502839,3,0.95,0.925999419,,,,,
+6,Hawthorn,North Melbourne,3,0.028724726,0.020991392,0.9502839,3,0.95,0.925999419,,,,,
+7,Adelaide Crows,Fremantle,1,0.95124996,0.022644179,0.026105877,1,0.95,0.925999419,,,,,
+8,West Coast Eagles,Gold Coast Suns,3,0.028724726,0.020991392,0.9502839,1,0.95,-3.321928095,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,90% correct,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+,,,,,,,,90% right with,0.55,0.6,0.7,0.8,0.9,0.95
+,,,,,,,,,0.398,0.73,1.2,1.39,1.07,0.38
+,,,,,,,,,,,,,,
+,,,,,,,,80% right with,,,,,,

@@ -1,0 +1,10 @@
+,match.homeTeam.name,match.awayTeam.name,predicted_result,prob_loss,prob_draw,prob_win
+9,Western Bulldogs,Carlton,1,0.95451975,0.021110443,0.024369739
+10,Sydney Swans,Geelong Cats,1,0.95451975,0.021110443,0.024369739
+11,Collingwood,Adelaide Crows,1,0.64994574,0.06203615,0.2880181
+12,Essendon,Brisbane Lions,1,0.95471203,0.021129763,0.02415816
+13,Port Adelaide,Hawthorn,1,0.6868569,0.055308934,0.2578342
+14,Gold Coast Suns,Melbourne,1,0.95471203,0.021129763,0.02415816
+15,North Melbourne,West Coast Eagles,1,0.95471203,0.021129763,0.02415816
+16,Richmond,GWS Giants,3,0.026524795,0.019968653,0.9535065
+17,Fremantle,St Kilda,3,0.026750958,0.020153282,0.9530958
