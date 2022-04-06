@@ -76,6 +76,9 @@ fixture_2022_temp <- fitzRoy::fetch_fixture_afl(season = 2022, round_number = NU
 fixture_2022 <- data.frame(lapply(fixture_2022_temp, set_lists_to_chars), stringsAsFactors = F)
 write.csv(fixture_2022,"data//fixture_2022.csv", row.names = FALSE)
 
+afltables_stats_temp <- fitzRoy::fetch_player_stats_afltables(season = 2022, round_number = NULL)
+afltables_stats <- data.frame(lapply(afltables_stats_temp, set_lists_to_chars), stringsAsFactors = F)
+write.csv(afltables_stats,"data//afl_players_stats_2022.csv", row.names = FALSE)
 
 #afltables_stats_temp <- fitzRoy::fetch_player_stats_afltables(season = 2021, round_number = NULL)
 #afltables_stats <- data.frame(lapply(afltables_stats_temp, set_lists_to_chars), stringsAsFactors = F)
