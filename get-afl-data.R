@@ -15,15 +15,6 @@ set_lists_to_chars <- function(x) {
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 
-
-
-
-
-
-
-
-
-
 # get historical afl match results
 
 
