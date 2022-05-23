@@ -262,16 +262,6 @@ def predict_round(pred_round):
             elo_dict = {team: 1500 for team in df['match.homeTeam.name'].unique()}
             elos, elo_probs = {}, {}
 
-            # Get a home and away dataframe so that we can get the teams on the same row
-            #home_df = df.loc[df.home_game == 1, ['match.homeTeam.name', 'match.matchId', 'f_margin', 'home_game']].rename(columns={'team': 'home_team'})
-            #away_df = df.loc[df.home_game == 0, ['match.homeTeam.name', 'match.matchId']].rename(columns={'team': 'away_team'})
-
-            #df = (pd.merge(home_df, away_df, on='game')
-            #        .sort_values(by='game')
-            #        .drop_duplicates(subset='game', keep='first')
-            #        .reset_index(drop=True))
-
-
             # Loop over the rows in the DataFrame
             for index, row in df.iterrows():
                 # Get the Game ID
@@ -333,9 +323,9 @@ def predict_round(pred_round):
         elos, elo_probs, elo_dict = elo_applier(afl_data, 30)
         # Add our created features - elo, efficiency etc.
         
-        #features = (features.assign(f_elo_home=lambda df: df['match.matchId'].map(elos).apply(lambda x: x[0]),
-        #                                            f_elo_away=lambda df: df['match.matchId'].map(elos).apply(lambda x: x[1]))
-        #                                      .reset_index(drop=True))
+        features = (features.assign(f_elo_home=lambda df: df['match.matchId'].map(elos).apply(lambda x: x[0]),
+                                                    f_elo_away=lambda df: df['match.matchId'].map(elos).apply(lambda x: x[1]))
+                                              .reset_index(drop=True))
         
     #    form_btwn_teams_inv = pd.DataFrame()
 
@@ -373,8 +363,8 @@ def predict_round(pred_round):
 
     feature_df, features_rolling_averages, afl_data, features = create_training_and_test_data(afl_df,df_next_games_teams)
     feature_columns = [col for col in feature_df if col.startswith('f_')]
-    #features['f_elo_home'] = features['f_elo_home']/1500
-    #features['f_elo_away'] = features['f_elo_away']/1500
+    #features['f_elo_home'] = features['f_elo_home']/1000
+    #features['f_elo_away'] = features['f_elo_away']/1000
 
     # Build model from feature_df
 
@@ -487,6 +477,19 @@ def predict_round(pred_round):
     df_next_games_teams['pred_home_result'] =  next_round_predictions
     df_next_games_teams['pred_home_prob'] = prediction_probs[:,1].round(3)
     
+    df_next_games_teams['enter_tips'] = ''
+    for i in range(len(df_next_games_teams)):
+        pred_home_result = df_next_games_teams['pred_home_result'].values[i]
+        
+        if pred_home_result == 1:
+            entertips = 'pick %s with p=%s' %(df_next_games_teams['match.homeTeam.name'].values[i],df_next_games_teams['pred_home_prob'].values[i])
+            df_next_games_teams['enter_tips'].values[i] = entertips
+        else:
+            entertips = 'pick %s with p=%s' % (df_next_games_teams['match.awayTeam.name'].values[i],1-df_next_games_teams['pred_home_prob'].values[i])
+            df_next_games_teams['enter_tips'].values[i] = entertips
+        
+    
+    
     if len(pred_round_results)==0:
         return accuracy, df_next_games_teams, features, afl_df
     
@@ -504,32 +507,44 @@ def predict_round(pred_round):
     for i in range(len(df_next_games_teams)):
         
         p = df_next_games_teams['pred_home_prob'].values[i] 
-        orig_p = df_next_games_teams['pred_home_prob'].values[i] 
+        q = df_next_games_teams['pred_home_prob'].values[i] 
         
         
-        if p > 0.9:
-            p = 0.9
-        elif p < 0.1:
-            p = 0.1
-        
+        if p > 0.68:
+            p = 0.68
+        elif p < 0.32:
+            p = 0.32
+
+        if q > 0.8:
+            q = 0.8
+        elif q < 0.2:
+            q = 0.2
+            
+            
         
         if df_next_games_teams['homeTeamScore.matchScore.totalScore'].values[i] == df_next_games_teams['awayTeamScore.matchScore.totalScore'].values[i]:
             df_next_games_teams['score_1'].values[i] = 1.0 + 0.5 * np.log2(p*(1-p))
             df_next_games_teams['score_2'].values[i] = 1.0 + 0.5 * np.log2(p*(1-p))
-            df_next_games_teams['score_3'].values[i] = 1.0 + 0.5 * np.log2(orig_p*(1-orig_p))
+            df_next_games_teams['score_3'].values[i] = 1.0 + 0.5 * np.log2(q*(1-q))
             
         elif (df_next_games_teams['pred_home_result'].values[i] == df_next_games_teams['result'].values[i]):
             df_next_games_teams['score_1'].values[i] = 1.0 + np.log2(p)
             if df_next_games_teams['pred_home_result'].values[i] == 1:
-                df_next_games_teams['score_1'].values[i] = 1.0 + np.log2(p)
-                df_next_games_teams['score_3'].values[i] = 1.0 + np.log2(orig_p)
-            else:
-                df_next_games_teams['score_2'].values[i] = 1.0 + np.log2(1-p)
-                df_next_games_teams['score_3'].values[i] = 1.0 + np.log2(1-orig_p)
+                df_next_games_teams['score_2'].values[i] = 1.0 + np.log2(p)
+                df_next_games_teams['score_3'].values[i] = 1.0 + np.log2(q)
+            elif df_next_games_teams['pred_home_result'].values[i] == 0:
+                df_next_games_teams['score_2'].values[i] = 1.0 + np.log2(1.0-p)
+                df_next_games_teams['score_3'].values[i] = 1.0 + np.log2(1.0-q)
                 
         elif df_next_games_teams['pred_home_result'].values[i] != df_next_games_teams['result'].values[i]:
             df_next_games_teams['score_1'].values[i] = 1.0 + np.log2(1.0 - p)
-            df_next_games_teams['score_2'].values[i] = 1.0 + np.log2(1.0 - p)
-            df_next_games_teams['score_3'].values[i] = 1.0 + np.log2(1.0 - orig_p)
 
+            if df_next_games_teams['pred_home_result'].values[i] == 1:
+                df_next_games_teams['score_2'].values[i] = 1.0 + np.log2(1.0 - p)
+                df_next_games_teams['score_3'].values[i] = 1.0 + np.log2(1.0 - q)
+            elif df_next_games_teams['pred_home_result'].values[i] == 0:
+                df_next_games_teams['score_2'].values[i] = 1.0 + np.log2(1.0-(1.0-p))
+                df_next_games_teams['score_3'].values[i] = 1.0 + np.log2(1.0-(1.0-q))
+            
+            
     return accuracy, df_next_games_teams, features, afl_df
