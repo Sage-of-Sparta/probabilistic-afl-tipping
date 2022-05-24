@@ -19,6 +19,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 def predict_round(pred_round):
 
@@ -86,6 +87,8 @@ def predict_round(pred_round):
     agg_player = get_aggregate_player_stats(df_players)
     afl_df = df_all.merge(agg_player, on=['Date', 'match.homeTeam.name', 'match.awayTeam.name'], how='left')
 
+
+    
     # Add average goal diff for home and away team rolling 4 games
 
     afl_df['HTGDIFF'] = afl_df['homeTeamScore.matchScore.goals'] - afl_df['awayTeamScore.matchScore.goals']
@@ -363,8 +366,8 @@ def predict_round(pred_round):
 
     feature_df, features_rolling_averages, afl_data, features = create_training_and_test_data(afl_df,df_next_games_teams)
     feature_columns = [col for col in feature_df if col.startswith('f_')]
-    #features['f_elo_home'] = features['f_elo_home']/1000
-    #features['f_elo_away'] = features['f_elo_away']/1000
+    features['f_elo_home'] = features['f_elo_home']/1500
+    features['f_elo_away'] = features['f_elo_away']/1500
 
     # Build model from feature_df
 
@@ -462,17 +465,42 @@ def predict_round(pred_round):
 
     lr_best_params = best_estimators[0].get_params()
 
-    lr = LogisticRegression(**lr_best_params)
-    lr.fit(X_train, y_train)
-    final_predictions_lr = lr.predict(X_test)
+    #lr = LogisticRegression(**lr_best_params)
+ #   lr = LogisticRegression(C=0.01, solver='liblinear')  # Best result so far
 
-    accuracy = (final_predictions_lr == y_test).mean() * 100
+#    lr = LogisticRegression(C=0.01, solver='liblinear')  
+#    lr.fit(X_train, y_train)
+#    final_predictions_lr = lr.predict(X_test)
+
+
+# best xgb model so far!!! get important parameters
+    XGB_model = XGBClassifier(
+                          learning_rate=0.005,  
+                     #     colsample_bytree = 0.5,
+                     #     subsample = 0.8,
+                      #    objective='multi:softprob',   doesnt work since only have 2 classes win or loss
+                      #    n_estimators=1000, 
+                          reg_alpha = 0.3,
+                       #   reg_lambda = .6,
+                       #   max_depth=5, 
+                          #max_delta_step=3,
+                          gamma=5,
+                          seed=82)
+
+    XGB_model.fit(X_train, y_train)
+    #accuracy = accuracy_score(y_test, y_pred)
+    final_predictions = XGB_model.predict(X_test)
+
+    accuracy = (final_predictions == y_test).mean() * 100
 
     next_round_features = features[features['train_data']==0][feature_columns]
 
-    next_round_predictions = lr.predict(next_round_features)
+    #next_round_predictions = lr.predict(next_round_features)
+    #prediction_probs = lr.predict_proba(next_round_features)
+    next_round_predictions = XGB_model.predict(next_round_features)
+    prediction_probs = XGB_model.predict_proba(next_round_features)
     
-    prediction_probs = lr.predict_proba(next_round_features)
+    
     
     df_next_games_teams['pred_home_result'] =  next_round_predictions
     df_next_games_teams['pred_home_prob'] = prediction_probs[:,1].round(3)
@@ -515,10 +543,10 @@ def predict_round(pred_round):
         elif p < 0.32:
             p = 0.32
 
-        if q > 0.8:
-            q = 0.8
-        elif q < 0.2:
-            q = 0.2
+        #if q > 0.8:
+        #    q = 0.8
+        #elif q < 0.2:
+        #    q = 0.2
             
             
         
