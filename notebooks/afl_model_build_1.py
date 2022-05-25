@@ -91,91 +91,9 @@ def predict_round(pred_round):
     
     # Add average goal diff for home and away team rolling 4 games
 
-    afl_df['HTGDIFF'] = afl_df['homeTeamScore.matchScore.goals'] - afl_df['awayTeamScore.matchScore.goals']
-    afl_df['ATGDIFF'] = afl_df['awayTeamScore.matchScore.goals'] - afl_df['homeTeamScore.matchScore.goals']
-
-    def from_dict_value_to_df(d):
-        """
-        input = dictionary 
-        output = dataframe as part of all the values from the dictionary
-        """
-        df = pd.DataFrame()
-        for v in d.values():
-            df = pd.concat([df,v])
-        return df
-
-    def avg_goal_diff(df, avg_h_a_diff, a_h_team, a_h_goal_letter):
-        """
-        input: 
-            df = dataframe with all results
-            avg_h_a_diff = name of the new column
-            a_h_team = HomeTeam or AwayTeam
-            a_h_goal_letter = 'H' for home or 'A' for away
-        output: 
-            avg_per_team = dictionary with with team as key and columns as values with new column H/ATGDIFF
-        """
-        df[avg_h_a_diff] = 0
-        avg_per_team = {}
-        all_teams = df[a_h_team].unique()
-        for t in all_teams:
-            df_team = df[df[a_h_team]==t].fillna(0)
-            result = df_team['{}TGDIFF'.format(a_h_goal_letter)].rolling(4).mean()
-            df_team[avg_h_a_diff] = result
-            avg_per_team[t] = df_team
-        return avg_per_team
-
-    d_AVGFTHG = avg_goal_diff(afl_df, 'AVGHTGDIFF', 'match.homeTeam.name', 'H')
-    df_AVGFTHG = from_dict_value_to_df(d_AVGFTHG)
-    df_AVGFTHG.sort_index(inplace=True)
-    d_AVGFTAG = avg_goal_diff(df_AVGFTHG, 'AVGATGDIFF', 'match.awayTeam.name', 'A')
-    afl_df = from_dict_value_to_df(d_AVGFTAG)
-    afl_df.sort_index(inplace=True)
-    afl_df['AVGATGDIFF'].fillna(0, inplace=True)
 
     afl_df['goal_diff'] = afl_df['homeTeamScore.matchScore.goals'] - afl_df['awayTeamScore.matchScore.goals']
 
-    for index, row in df_all[df_all['match.status']=='CONCLUDED'].iterrows():
-        if afl_df['goal_diff'][index] > 0:
-            afl_df.at[index,'result'] = 1   # 1 is a win
-        else:
-            afl_df.at[index,'result'] = 0  # 0 is a loss 
-
-    def previous_data(df, h_or_a_team, column, letter, past_n):
-        """
-        input: 
-            df = dataframe with all results
-            a_h_team = HomeTeam or AwayTeam
-            column = column selected to get previous data from
-        output:
-            team_with_past_dict = dictionary with team as a key and columns as values with new 
-                                  columns with past value
-        """
-        d = dict()
-        team_with_past_dict = dict()
-        all_teams = df[h_or_a_team].unique()
-        for team in all_teams:
-            n_games = len(df[df[h_or_a_team]==team])
-            team_with_past_dict[team] = df[df[h_or_a_team]==team]
-            for i in range(1, past_n):
-                d[i] = team_with_past_dict[team].assign(
-                    result=team_with_past_dict[team].groupby(h_or_a_team)[column].shift(i)
-                ).fillna({'{}_X'.format(column): 0})
-                team_with_past_dict[team]['{}_{}_{}'.format(letter, column, i)] = d[i].result
-        return team_with_past_dict
-
-    def previous_data_call(df, side, column, letter, iterations):
-        d = previous_data(df, side, column, letter, iterations)
-        df_result= from_dict_value_to_df(d)
-        df_result.sort_index(inplace=True)
-        return df_result
-
-    df_last_home_results = previous_data_call(afl_df, 'match.homeTeam.name', 'result', 'H', 3)
-    df_last_away_results = previous_data_call(df_last_home_results, 'match.awayTeam.name', 'result', 'A', 3)
-    df_last_last_HTGDIFF_results = previous_data_call(df_last_away_results, 'match.homeTeam.name', 'HTGDIFF', 'H', 3)
-    df_last_last_ATGDIFF_results = previous_data_call(df_last_last_HTGDIFF_results, 'match.awayTeam.name', 'ATGDIFF', 'A', 3)
-    df_last_AVGFTHG_results = previous_data_call(df_last_last_ATGDIFF_results, 'match.homeTeam.name', 'AVGHTGDIFF', 'H', 2)
-    df_last_AVGFTAG_results = previous_data_call(df_last_AVGFTHG_results, 'match.awayTeam.name', 'AVGATGDIFF', 'A', 2)
-    afl_df = df_last_AVGFTAG_results.copy()
 
     all_cols = ['match.matchId','match.date', 'match.status', 'match.venue', 'match.homeTeam.name', 'match.awayTeam.name','venue.name', 'venue.state', 'round.name', 'round.year', 'round.roundNumber', 'status',
     'homeTeamScore.rushedBehinds', 'homeTeamScore.minutesInFront',
@@ -200,10 +118,7 @@ def predict_round(pred_round):
            'Frees.For', 'Frees.Against', 'Brownlow.Votes', 'Contested.Possessions',
            'Uncontested.Possessions', 'Contested.Marks', 'Marks.Inside.50',
            'One.Percenters', 'Bounces', 'Goal.Assists', 'Time.on.Ground..',
-           'Substitute', 'group_id', 'HTGDIFF', 'ATGDIFF', 'AVGHTGDIFF',
-           'AVGATGDIFF', 'goal_diff', 'result', 'H_result_1', 'H_result_2',
-           'A_result_1', 'A_result_2', 'H_HTGDIFF_1', 'H_HTGDIFF_2', 'A_ATGDIFF_1',
-           'A_ATGDIFF_2', 'H_AVGHTGDIFF_1', 'A_AVGATGDIFF_1']
+           'Substitute', 'group_id', 'goal_diff']
 
     non_feature_cols = ['match.matchId','match.date', 'match.status', 'match.venue', 'match.homeTeam.name', 'match.awayTeam.name','venue.name', 'venue.state', 'round.name', 'round.year', 'round.roundNumber', 'status','Season']
     feature_cols = [
@@ -229,10 +144,7 @@ def predict_round(pred_round):
            'Frees.For', 'Frees.Against', 'Brownlow.Votes', 'Contested.Possessions',
            'Uncontested.Possessions', 'Contested.Marks', 'Marks.Inside.50',
            'One.Percenters', 'Bounces', 'Goal.Assists', 'Time.on.Ground..',
-           'Substitute', 'group_id', 'HTGDIFF', 'ATGDIFF', 'AVGHTGDIFF',
-           'AVGATGDIFF', 'goal_diff', 'result', 'H_result_1', 'H_result_2',
-           'A_result_1', 'A_result_2', 'H_HTGDIFF_1', 'H_HTGDIFF_2', 'A_ATGDIFF_1',
-           'A_ATGDIFF_2', 'H_AVGHTGDIFF_1', 'A_AVGATGDIFF_1']
+           'Substitute', 'group_id','goal_diff']
 
     afl_df = afl_df[all_cols] 
 
@@ -466,19 +378,57 @@ def predict_round(pred_round):
     lr_best_params = best_estimators[0].get_params()
 
     #lr = LogisticRegression(**lr_best_params)
-    lr = LogisticRegression(C=0.01, solver='liblinear')  # Best result so far
+ #   lr = LogisticRegression(C=0.01, solver='liblinear')  # Best result so far
 
-    lr = LogisticRegression(C=0.01, solver='liblinear')  
-    lr.fit(X_train, y_train)
-    final_predictions = lr.predict(X_test)
+#    lr = LogisticRegression(C=0.01, solver='liblinear')  
+#    lr.fit(X_train, y_train)
+#    final_predictions_lr = lr.predict(X_test)
+
+
+# best xgb model so far!!! get important parameters
+#    XGB_model = XGBClassifier(
+#                          learning_rate=0.005,  
+                     #     colsample_bytree = 0.5,
+                     #     subsample = 0.8,
+                      #    objective='multi:softprob',   doesnt work since only have 2 classes win or loss
+                      #    n_estimators=1000, 
+ #                         reg_alpha = 0.3,
+                       #   reg_lambda = .6,
+                       #   max_depth=5, 
+                          #max_delta_step=3,
+  #                        gamma=5,
+   #                       seed=82)
+
+    XGB_model = XGBClassifier(
+         learning_rate =0.1,
+         n_estimators=1000,
+         max_depth=7,
+         min_child_weight=3,
+         gamma=0.2,
+         subsample=0.9,  #0.2
+         colsample_bytree=0.7,
+         reg_alpha=0.01,
+         objective= 'binary:logistic',
+         nthread=4,
+         scale_pos_weight=1,
+         seed=42)
+    
+    
+    XGB_model.fit(X_train, y_train)
+    #accuracy = accuracy_score(y_test, y_pred)
+    final_predictions = XGB_model.predict(X_test)
 
     accuracy = (final_predictions == y_test).mean() * 100
 
     next_round_features = features[features['train_data']==0][feature_columns]
 
-    next_round_predictions = lr.predict(next_round_features)
-    prediction_probs = lr.predict_proba(next_round_features)
-
+    #next_round_predictions = lr.predict(next_round_features)
+    #prediction_probs = lr.predict_proba(next_round_features)
+    next_round_predictions = XGB_model.predict(next_round_features)
+    prediction_probs = XGB_model.predict_proba(next_round_features)
+    
+    
+    
     df_next_games_teams['pred_home_result'] =  next_round_predictions
     df_next_games_teams['pred_home_prob'] = prediction_probs[:,1].round(3)
     
@@ -520,10 +470,10 @@ def predict_round(pred_round):
         elif p < 0.32:
             p = 0.32
 
-        if q > 0.65:
-            q = 0.65
-        elif q < 0.35:
-            q = 0.35
+        if q > 0.8:
+            q = 0.8
+        elif q < 0.2:
+            q = 0.2
             
             
         
