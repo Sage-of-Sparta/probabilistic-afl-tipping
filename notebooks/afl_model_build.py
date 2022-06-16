@@ -21,7 +21,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
-def predict_round(pred_round):
+def predict_round(pred_round,skipflag):
 
     def load_afl_data(pred_round):
         df_2017 = pd.read_csv("../data/afl_results_2017.csv")
@@ -233,10 +233,11 @@ def predict_round(pred_round):
            'AVGATGDIFF', 'goal_diff', 'result', 'H_result_1', 'H_result_2',
            'A_result_1', 'A_result_2', 'H_HTGDIFF_1', 'H_HTGDIFF_2', 'A_ATGDIFF_1',
            'A_ATGDIFF_2', 'H_AVGHTGDIFF_1', 'A_AVGATGDIFF_1']
-
+    
+    
     afl_df = afl_df[all_cols] 
 
-    afl_df = afl_df.rename(columns={col: 'f_' + col for col in afl_df if col not in non_feature_cols})
+    afl_df = afl_df.rename(columns={col: 'f_' + col for col in afl_df if col in feature_cols})
 
 
 
@@ -329,26 +330,8 @@ def predict_round(pred_round):
         features = (features.assign(f_elo_home=lambda df: df['match.matchId'].map(elos).apply(lambda x: x[0]),
                                                     f_elo_away=lambda df: df['match.matchId'].map(elos).apply(lambda x: x[1]))
                                               .reset_index(drop=True))
-        
-    #    form_btwn_teams_inv = pd.DataFrame()
-
-    #    for index, row in form_btwn_teams.iterrows():
-    #        home = row['match.homeTeam.name']
-    #        away = row['match.awayTeam.name']
-    #        matchid = row['match.matchId']
-    #        margin = row['f_goal_diff']
-
-    #        form_btwn_teams_inv = form_btwn_teams_inv.append({'match.matchId': matchid, 'match.homeTeam.name': away, 'match.awayTeam.name': home, 'f_goal_diff': -1*margin}, ignore_index=True)
-
-    #    form_btwn_teams['f_form_margin_btwn_teams'] = (form_btwn_teams.groupby(['match.homeTeam.name', 'match.awayTeam.name'])['f_goal_diff']
-    #                                                              .transform(lambda row: row.rolling(5).mean().shift())
-    #                                                              .fillna(0))
-
-    #    form_btwn_teams['f_form_past_5_btwn_teams'] = \
-    #    (form_btwn_teams.assign(win=lambda df: df.apply(lambda row: 1 if row.f_goal_diff > 0 else 0, axis='columns'))
-    #                  .groupby(['match.homeTeam.name', 'match.awayTeam.name'])['win']
-    #                  .transform(lambda row: row.rolling(5).mean().shift() * 5)
-    #                  .fillna(0))
+        features['f_elo_home'] = features['f_elo_home']/1500
+        features['f_elo_away'] = features['f_elo_away']/1500
 
 
         #print(features.shape)
@@ -366,8 +349,7 @@ def predict_round(pred_round):
 
     feature_df, features_rolling_averages, afl_data, features = create_training_and_test_data(afl_df,df_next_games_teams)
     feature_columns = [col for col in feature_df if col.startswith('f_')]
-    features['f_elo_home'] = features['f_elo_home']/1500
-    features['f_elo_away'] = features['f_elo_away']/1500
+
 
     # Build model from feature_df
 
@@ -495,7 +477,7 @@ def predict_round(pred_round):
         
     
     
-    if len(pred_round_results)==0:
+    if len(pred_round_results)==0 or skipflag == True:
         return accuracy, df_next_games_teams, features, afl_df
     
     
@@ -520,11 +502,11 @@ def predict_round(pred_round):
         elif p < 0.32:
             p = 0.32
 
-        if q > 0.65:
-            q = 0.65
-        elif q < 0.35:
-            q = 0.35
-            
+        if q > 0.75:
+            q = 0.75
+        elif q < 0.25:
+            q = 0.25
+
             
         
         if df_next_games_teams['homeTeamScore.matchScore.totalScore'].values[i] == df_next_games_teams['awayTeamScore.matchScore.totalScore'].values[i]:
