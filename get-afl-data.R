@@ -92,3 +92,11 @@ write.csv(afltables_stats,"data//afl_players_stats_2022.csv", row.names = FALSE)
 #afltables_stats <- data.frame(lapply(afltables_stats_temp, set_lists_to_chars), stringsAsFactors = F)
 #write.csv(afltables_stats,"data//afl_players_stats_2017.csv", row.names = FALSE)
 
+
+aflt_ladder_temp <- fitzRoy::fetch_ladder(season = 2022,round_number = NULL,comp = "AFLM",source = "AFL")
+aflt_ladder <- data.frame(lapply(aflt_ladder_temp, set_lists_to_chars), stringsAsFactors = F)
+write.csv(aflt_ladder,"data//afl_ladder_2022.csv", row.names = FALSE)
+
+
+
+
